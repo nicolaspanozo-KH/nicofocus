@@ -261,6 +261,9 @@
     border: solid var(--bg); border-width: 0 2.5px 2.5px 0;
     transform: rotate(45deg); margin-top: -2px;
   }
+  .wday.rest .ring { background: rgba(255, 255, 255, 0.05); }
+  .wday.rest .lbl { opacity: 0.4; }
+  .wday.frozen .ring { background: rgba(168, 214, 240, 0.9); font-size: 14px; }
   /* crisp gapped ring on today: bg-colored inner shadow makes the gap */
   .wday.today .lbl { opacity: 1; }
   .wday.today .ring { box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px rgba(255, 255, 255, 0.9); }
@@ -326,6 +329,29 @@
   .chart-lbl.today { color: #333; }
   .week-focus { display: flex; justify-content: space-between; font-size: 13px; color: #666; font-weight: 600; margin: 4px 0 20px; }
   .week-focus b { color: #333; }
+
+  /* gems + freezes row */
+  .gem-row { display: flex; align-items: center; gap: 14px; background: #f5f5f5; border-radius: 10px; padding: 12px 16px; margin-bottom: 20px; font-size: 14px; color: #555; font-weight: 600; }
+  .gem-item b { color: #222; font-size: 16px; }
+  .gem-row .btn-soft { margin-left: auto; }
+  .gem-row .btn-soft:disabled { opacity: 0.45; cursor: not-allowed; }
+
+  /* weekly headline (XP earned card) */
+  .week-headline { text-align: center; padding: 8px 0 18px; border-bottom: 1px solid #eee; margin-bottom: 18px; }
+  .wh-cap { font-size: 12px; letter-spacing: 1px; color: #999; font-weight: 700; text-transform: uppercase; }
+  .wh-num { font-size: 40px; font-weight: 800; color: #2f2f2f; margin: 6px 0 4px; display: flex; align-items: center; justify-content: center; gap: 8px; }
+  .wh-sub { font-size: 14px; color: #999; font-weight: 600; }
+  .wh-sub b { color: #4a9d52; }
+  .wh-sub b.down { color: #cf6679; }
+
+  /* xp / time view toggle */
+  .view-toggle { display: inline-flex; background: #eee; border-radius: 8px; padding: 3px; }
+  .vt-btn { border: none; background: none; padding: 5px 14px; border-radius: 6px; font-size: 13px; font-weight: 700; color: #999; cursor: pointer; }
+  .vt-btn.active { background: #fff; color: #333; box-shadow: 0 1px 2px rgba(0,0,0,0.12); }
+
+  /* toast */
+  .toast { position: fixed; left: 50%; bottom: 28px; transform: translateX(-50%) translateY(20px); background: #2f2f2f; color: #fff; padding: 12px 20px; border-radius: 10px; font-weight: 600; font-size: 14px; opacity: 0; transition: opacity 0.3s, transform 0.3s; z-index: 300; pointer-events: none; max-width: 90vw; text-align: center; }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 </style>
 
 <div class="wrap">
@@ -403,7 +429,9 @@
       <div class="set-group">
         <div class="g-title">🔥 Streak</div>
         <div class="set-row"><span class="name">Daily goal (sessions)</span><input type="number" id="cfgGoal" class="small" min="1" /></div>
-        <div class="hint">Finish this many focus sessions in a day to keep your streak alive, Duolingo-style. Miss a full day and it resets.</div>
+        <div class="hint" style="margin-bottom:10px">Your daily target for the progress bar. The streak itself only needs 1 session per day.</div>
+        <div class="set-row"><span class="name">Rest on weekends</span><div class="toggle" id="cfgRestWeekends"></div></div>
+        <div class="hint">When on, Saturdays and Sundays never break your streak and don't need a session. Earn 💎 by focusing and bank 🧊 freezes (max 2) to auto-cover a missed work day.</div>
       </div>
 
       <div class="set-group">
@@ -475,18 +503,33 @@
         <div class="stat"><div class="num" id="rStreak">0</div><div class="cap">🔥 Day streak</div></div>
         <div class="stat"><div class="num" id="rBest">0</div><div class="cap">Best streak</div></div>
         <div class="stat"><div class="num" id="rXp">0</div><div class="cap">⭐ Total XP</div></div>
-        <div class="stat"><div class="num" id="rWeekFocus">0h</div><div class="cap">Focus this week</div></div>
+        <div class="stat"><div class="num" id="rTotalFocus">0h</div><div class="cap">Focus all-time</div></div>
+      </div>
+
+      <div class="gem-row">
+        <span class="gem-item">💎 <b id="rGems">0</b></span>
+        <span class="gem-item">🧊 <b id="rFreezes">0</b>/2</span>
+        <button class="btn-soft" id="buyFreeze">Buy freeze (15 💎)</button>
+      </div>
+
+      <div class="week-headline">
+        <div class="wh-cap" id="whCap">XP earned this week</div>
+        <div class="wh-num" id="whVal">0</div>
+        <div class="wh-sub" id="whSub"></div>
       </div>
 
       <div class="chart-head">
-        <div class="heat-title" style="margin:0">This week's XP</div>
-        <div class="chart-legend">
-          <span><i class="lg-dot" id="lgCur"></i>This week</span>
-          <span><i class="lg-dot" style="background:#e0e0e0"></i>Last week</span>
+        <div class="heat-title" style="margin:0">This week vs last</div>
+        <div class="view-toggle">
+          <button class="vt-btn" data-view="xp">XP</button>
+          <button class="vt-btn" data-view="time">Time</button>
         </div>
       </div>
       <div class="chart" id="chart"></div>
-      <div class="week-focus" id="weekFocus"></div>
+      <div class="chart-legend" style="justify-content:flex-end;margin-bottom:18px">
+        <span><i class="lg-dot" id="lgCur"></i>This week</span>
+        <span><i class="lg-dot" style="background:#e0e0e0"></i>Last week</span>
+      </div>
 
       <div class="heat-title">Activity (last 13 weeks)</div>
       <div class="heat" id="heat"></div>
@@ -528,19 +571,28 @@ const GOOGLE_CLIENT_ID = "980514183334-bp2bu8k44eegq6sh48h0grhqlnnhs34j.apps.goo
 const DRIVE_SCOPE = "https://www.googleapis.com/auth/drive.appdata";
 const DRIVE_FILE = "nicofocus.json";
 
+const FREEZE_COST = 15;   // gems to buy one streak freeze
+const MAX_FREEZES = 2;    // most you can bank at once
+
 const DEFAULTS = {
   config: {
     pomodoro: 45, short: 5, long: 15, interval: 4, goal: 4,
     autoBreak: false, autoPomo: false, sound: true, notify: false,
     color: "186 73 73",
     alarm: "chime", volume: 0.5, alarmRepeat: 1, click: true,
+    restWeekends: false, chartView: "xp",
   },
-  history: {},   // "YYYY-MM-DD": sessionCount
-  minutes: {},   // "YYYY-MM-DD": focus minutes (for total time)
+  history: {},     // "YYYY-MM-DD": sessionCount
+  minutes: {},     // "YYYY-MM-DD": focus minutes (XP == minutes)
   tasks: [],
   activeTask: null,
   pomoSinceLong: 0,
-  updatedAt: 0,  // last local edit, used to reconcile across devices
+  gems: 0,         // earned by focusing, spent on streak freezes
+  freezes: 0,      // banked streak freezes
+  frozenDays: {},  // "YYYY-MM-DD": true, days auto-saved by a freeze
+  joined: null,    // first day used, for "since joining" stats
+  updatedAt: 0,    // last local edit, used to reconcile across devices
+  cfgUpdatedAt: 0, // last config edit, so settings sync independently of activity
 };
 
 function load() {
@@ -567,6 +619,11 @@ function save() {
   persistLocalOnly();
   schedulePush();   // no-op unless signed in to Drive
 }
+/* use for any settings change so config syncs by its own timestamp */
+function saveConfig() {
+  state.cfgUpdatedAt = Date.now();
+  save();
+}
 
 let state = load();
 
@@ -583,28 +640,70 @@ function shiftDay(key, delta) {
 
 /* ---------------- streak logic (Duolingo-style) ---------------- */
 /* A day counts toward the streak as soon as you finish ONE session. The daily goal
-   is a separate personal target shown in the progress bar, it does not gate the streak. */
+   is a separate personal target shown in the progress bar, it does not gate the streak.
+   Weekends are optional rest days (don't break and don't count). A freeze can cover a
+   missed work day. */
 const STREAK_GOAL = 1;
+function isRestDay(key) {
+  if (!state.config.restWeekends) return false;
+  const [y, m, d] = key.split("-").map(Number);
+  const dow = new Date(y, m - 1, d).getDay();
+  return dow === 0 || dow === 6; // Sun / Sat
+}
+function dayCovered(key) {
+  return (state.history[key] || 0) >= STREAK_GOAL || !!state.frozenDays[key];
+}
 function computeStreak() {
   const today = dayKey();
-  const met = (k) => (state.history[k] || 0) >= STREAK_GOAL;
   let cursor = today;
   let atRisk = false;
-  // Today not yet done? streak still alive via yesterday (grace until midnight).
-  if (!met(today)) { cursor = shiftDay(today, -1); atRisk = true; }
-  let streak = 0;
-  while (met(cursor)) { streak++; cursor = shiftDay(cursor, -1); }
+  if (!dayCovered(today)) {
+    // today's work isn't done: rest day -> no risk; work day -> grace until midnight
+    if (!isRestDay(today)) atRisk = true;
+    cursor = shiftDay(today, -1);
+  }
+  let streak = 0, guard = 0;
+  while (guard++ < 3700) {
+    if (isRestDay(cursor)) { cursor = shiftDay(cursor, -1); continue; } // skip, no break
+    if (dayCovered(cursor)) { streak++; cursor = shiftDay(cursor, -1); }
+    else break;
+  }
   return { streak, atRisk: atRisk && streak > 0 };
 }
 function computeBest() {
-  const days = Object.keys(state.history).filter((k) => state.history[k] >= STREAK_GOAL).sort();
-  let best = 0, run = 0, prev = null;
-  for (const k of days) {
-    if (prev && shiftDay(prev, 1) === k) run++; else run = 1;
-    best = Math.max(best, run);
-    prev = k;
+  const keys = Object.keys(state.history).concat(Object.keys(state.frozenDays));
+  if (state.joined) keys.push(state.joined);
+  if (!keys.length) return 0;
+  let cur = keys.sort()[0];
+  const today = dayKey();
+  let best = 0, run = 0, guard = 0;
+  while (cur <= today && guard++ < 4000) {
+    if (isRestDay(cur)) { /* transparent */ }
+    else if (dayCovered(cur)) { run++; best = Math.max(best, run); }
+    else run = 0;
+    cur = shiftDay(cur, 1);
   }
   return best;
+}
+/* auto-apply banked freezes to cover a gap of missed work days right before today,
+   but only when it fully preserves an existing streak. Returns days saved. */
+function applyFreezes() {
+  if (!state.freezes) return 0;
+  const today = dayKey();
+  let cursor = shiftDay(today, -1);
+  const missed = [];
+  while (true) {
+    if (isRestDay(cursor)) { cursor = shiftDay(cursor, -1); continue; }
+    if (dayCovered(cursor)) break;            // reached an active day -> a streak existed
+    missed.push(cursor);
+    if (missed.length > state.freezes || missed.length > 60) return 0; // can't fully bridge
+    cursor = shiftDay(cursor, -1);
+  }
+  if (!missed.length) return 0;
+  missed.forEach((d) => { state.frozenDays[d] = true; });
+  state.freezes -= missed.length;
+  persistLocalOnly();
+  return missed.length;
 }
 
 /* ---------------- timer engine (timestamp-based) ---------------- */
@@ -702,6 +801,9 @@ function recordSession() {
   const prevStreak = computeStreak().streak;
   state.history[k] = (state.history[k] || 0) + 1;
   state.minutes[k] = (state.minutes[k] || 0) + state.config.pomodoro;
+  // earn gems: 1 per session, +3 bonus the moment you hit the daily goal
+  state.gems = (state.gems || 0) + 1;
+  if (state.history[k] === state.config.goal) state.gems += 3;
   // bump active task
   if (state.activeTask != null) {
     const t = state.tasks.find((t) => t.id === state.activeTask);
@@ -818,9 +920,11 @@ function weekDays() {
     const d = new Date(sunday);
     d.setDate(sunday.getDate() + i);
     const k = dayKey(d);
+    const done = (state.history[k] || 0) >= STREAK_GOAL;
     out.push({
-      letter: WEEK_LETTERS[i], key: k,
-      done: (state.history[k] || 0) >= STREAK_GOAL,
+      letter: WEEK_LETTERS[i], key: k, done,
+      frozen: !done && !!state.frozenDays[k],
+      rest: !done && isRestDay(k),
       isToday: k === tKey,
       future: d > today && k !== tKey,
     });
@@ -832,8 +936,10 @@ function renderWeek(container) {
   container.innerHTML = "";
   weekDays().forEach((d) => {
     const w = document.createElement("div");
-    w.className = "wday" + (d.done ? " done" : "") + (d.isToday ? " today" : "") + (d.future ? " future" : "");
-    w.innerHTML = `<div class="lbl">${d.letter}</div><div class="ring"></div>`;
+    w.className = "wday" + (d.done ? " done" : "") + (d.frozen ? " frozen" : "") +
+      (d.rest ? " rest" : "") + (d.isToday ? " today" : "") + (d.future ? " future" : "");
+    const mark = d.frozen ? "🧊" : "";
+    w.innerHTML = `<div class="lbl">${d.letter}</div><div class="ring">${mark}</div>`;
     container.appendChild(w);
   });
 }
@@ -1008,26 +1114,51 @@ function renderTasks() {
 /* ---------------- profile ---------------- */
 /* XP equals focus minutes: a longer session is worth more. */
 function xpOn(key) { return state.minutes[key] || 0; }
-function fmtHours(min) { return (min / 60).toFixed(1) + "h"; }
+function fmtHours(min) {
+  const h = Math.floor(min / 60), m = Math.round(min % 60);
+  return h > 0 ? `${h}h ${m}m` : `${m}m`;
+}
+function viewIsTime() { return state.config.chartView === "time"; }
+/* format one value in the active unit */
+function fmtVal(min) { return viewIsTime() ? fmtHours(min) : min.toLocaleString() + " XP"; }
+
+function weekTotals() {
+  const today = dayKey();
+  let week = 0, prev = 0;
+  for (let i = 0; i < 7; i++) { week += xpOn(shiftDay(today, -i)); prev += xpOn(shiftDay(today, -i - 7)); }
+  return { week, prev };
+}
 
 function openReport() {
   const { streak } = computeStreak();
   document.getElementById("rStreak").textContent = streak;
   document.getElementById("rBest").textContent = Math.max(computeBest(), streak);
 
-  const totalXp = Object.values(state.minutes).reduce((a, b) => a + b, 0);
-  document.getElementById("rXp").textContent = totalXp.toLocaleString();
+  const totalMin = Object.values(state.minutes).reduce((a, b) => a + b, 0);
+  document.getElementById("rXp").textContent = totalMin.toLocaleString();
+  document.getElementById("rTotalFocus").textContent = fmtHours(totalMin);
+  document.getElementById("rGems").textContent = state.gems || 0;
+  document.getElementById("rFreezes").textContent = (state.freezes || 0) + "/" + MAX_FREEZES;
 
-  // rolling 7-day window ending today
-  const today = dayKey();
-  let weekMin = 0, prevWeekMin = 0;
-  for (let i = 0; i < 7; i++) {
-    weekMin += xpOn(shiftDay(today, -i));
-    prevWeekMin += xpOn(shiftDay(today, -i - 7));
+  const buy = document.getElementById("buyFreeze");
+  buy.textContent = `Buy freeze (${FREEZE_COST} 💎)`;
+  buy.disabled = (state.gems || 0) < FREEZE_COST || (state.freezes || 0) >= MAX_FREEZES;
+
+  // weekly headline (this rolling week vs last)
+  const { week, prev } = weekTotals();
+  document.getElementById("whCap").textContent = viewIsTime() ? "Focus this week" : "XP earned this week";
+  document.getElementById("whVal").textContent = viewIsTime() ? fmtHours(week) : (week.toLocaleString() + " ⚡");
+  const sub = document.getElementById("whSub");
+  if (prev > 0) {
+    const pct = Math.round(((week - prev) / prev) * 100);
+    const up = pct >= 0;
+    sub.innerHTML = `<b class="${up ? "" : "down"}">${up ? "+" : ""}${pct}%</b> ${up ? "more" : "less"} than last week`;
+  } else {
+    sub.innerHTML = week > 0 ? "Your first week of focus 🌱" : "Do a session to start the week";
   }
-  document.getElementById("rWeekFocus").textContent = fmtHours(weekMin);
-  document.getElementById("weekFocus").innerHTML =
-    `This week <b>${fmtHours(weekMin)}</b><span>Last week <b>${fmtHours(prevWeekMin)}</b></span>`;
+
+  // sync the view toggle UI
+  document.querySelectorAll(".vt-btn").forEach((b) => b.classList.toggle("active", b.dataset.view === state.config.chartView));
 
   renderChart();
   renderHeat();
@@ -1040,6 +1171,8 @@ function renderChart() {
   document.getElementById("lgCur").style.background = `rgb(${state.config.color})`;
   const today = dayKey();
   const narrow = new Intl.DateTimeFormat(undefined, { weekday: "narrow" });
+  const unit = viewIsTime() ? "" : " XP";
+  const fmtBar = (min) => viewIsTime() ? fmtHours(min) : (min + " XP");
   // build 7 rolling days, oldest -> today (left to right)
   const cols = [];
   let max = 1;
@@ -1056,13 +1189,33 @@ function renderChart() {
     col.className = "chart-col";
     col.innerHTML = `
       <div class="chart-bars">
-        <div class="bar cur" style="height:${(c.cur / max) * 100}%" title="${c.cur} XP this week"></div>
-        <div class="bar prev" style="height:${(c.prev / max) * 100}%" title="${c.prev} XP last week"></div>
+        <div class="bar cur" style="height:${(c.cur / max) * 100}%" title="${fmtBar(c.cur)} this week"></div>
+        <div class="bar prev" style="height:${(c.prev / max) * 100}%" title="${fmtBar(c.prev)} last week"></div>
       </div>
       <div class="chart-lbl${c.isToday ? " today" : ""}">${c.label}</div>`;
     col.querySelector(".bar.cur").style.background = `rgb(${state.config.color})`;
     chart.appendChild(col);
   });
+}
+
+/* toast + freeze purchase */
+let toastTimer = null;
+function toast(msg) {
+  let t = document.getElementById("toast");
+  if (!t) { t = document.createElement("div"); t.id = "toast"; t.className = "toast"; document.body.appendChild(t); }
+  t.textContent = msg;
+  requestAnimationFrame(() => t.classList.add("show"));
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove("show"), 2800);
+}
+function buyFreeze() {
+  if ((state.freezes || 0) >= MAX_FREEZES) { toast(`Freezes are full (max ${MAX_FREEZES}).`); return; }
+  if ((state.gems || 0) < FREEZE_COST) { toast("Not enough gems yet, keep focusing!"); return; }
+  state.gems -= FREEZE_COST;
+  state.freezes = (state.freezes || 0) + 1;
+  save();
+  toast("🧊 Streak freeze added!");
+  openReport();
 }
 function heatColor(n) {
   if (!n) return "#ebedf0";
@@ -1110,7 +1263,7 @@ function buildSwatches() {
     s.className = "swatch" + (c === state.config.color ? " sel" : "");
     s.style.background = `rgb(${c})`;
     s.addEventListener("click", () => {
-      state.config.color = c; save();
+      state.config.color = c; saveConfig();
       if (mode === "pomodoro") applyMode();
       buildSwatches();
     });
@@ -1123,7 +1276,7 @@ function bindToggle(id, key, onChange) {
   t.addEventListener("click", () => {
     state.config[key] = !state.config[key];
     t.classList.toggle("on", state.config[key]);
-    save();
+    saveConfig();
     if (onChange) onChange(state.config[key]);
   });
 }
@@ -1132,16 +1285,32 @@ function bindNumber(id, key, onChange) {
   inp.value = state.config[key];
   inp.addEventListener("change", () => {
     const v = Math.max(1, parseInt(inp.value) || 1);
-    inp.value = v; state.config[key] = v; save();
+    inp.value = v; state.config[key] = v; saveConfig();
     if (onChange) onChange(v);
   });
 }
+/* refresh all settings controls from state.config (after a sync merge) */
+function syncSettingsUI() {
+  const setVal = (id, v) => { const e = document.getElementById(id); if (e) e.value = v; };
+  const setTog = (id, on) => { const e = document.getElementById(id); if (e) e.classList.toggle("on", !!on); };
+  setVal("cfgPomodoro", state.config.pomodoro);
+  setVal("cfgShort", state.config.short);
+  setVal("cfgLong", state.config.long);
+  setVal("cfgInterval", state.config.interval);
+  setVal("cfgGoal", state.config.goal);
+  setVal("cfgAlarm", state.config.alarm);
+  setVal("cfgVolume", Math.round((state.config.volume ?? 0.5) * 100));
+  setVal("cfgRepeat", state.config.alarmRepeat || 1);
+  setTog("cfgAutoBreak", state.config.autoBreak);
+  setTog("cfgAutoPomo", state.config.autoPomo);
+  setTog("cfgSound", state.config.sound);
+  setTog("cfgClick", state.config.click);
+  setTog("cfgRestWeekends", state.config.restWeekends);
+  setTog("cfgNotify", state.config.notify);
+  buildSwatches();
+}
 function openSettings() {
-  bindNumber("cfgPomodoro", "pomodoro");
-  bindNumber("cfgShort", "short");
-  bindNumber("cfgLong", "long");
-  bindNumber("cfgInterval", "interval");
-  bindNumber("cfgGoal", "goal", () => renderAll());
+  syncSettingsUI();
   document.getElementById("settingsModal").classList.add("open");
 }
 
@@ -1162,7 +1331,7 @@ function importData(file) {
       state = { ...structuredClone(DEFAULTS), ...data, config: { ...DEFAULTS.config, ...(data.config || {}) } };
       save();
       resetTimerTo("pomodoro");
-      renderAll(); buildSwatches();
+      renderAll(); syncSettingsUI();
       alert("Data imported.");
     } catch (e) { alert("Could not read that file."); }
   };
@@ -1213,36 +1382,47 @@ document.getElementById("importBtn").addEventListener("click", () => document.ge
 document.getElementById("importFile").addEventListener("change", (e) => { if (e.target.files[0]) importData(e.target.files[0]); });
 document.getElementById("resetBtn").addEventListener("click", () => {
   if (confirm("Erase ALL sessions, streak and tasks? This cannot be undone.")) {
-    state = structuredClone(DEFAULTS); save();
-    resetTimerTo("pomodoro"); renderAll(); buildSwatches();
+    state = structuredClone(DEFAULTS); ensureJoined(); save();
+    resetTimerTo("pomodoro"); renderAll(); syncSettingsUI();
     document.querySelectorAll(".overlay").forEach((o) => o.classList.remove("open"));
   }
 });
 
+bindNumber("cfgPomodoro", "pomodoro", () => { if (!running && mode === "pomodoro") resetTimerTo("pomodoro"); });
+bindNumber("cfgShort", "short");
+bindNumber("cfgLong", "long");
+bindNumber("cfgInterval", "interval", () => renderAll());
+bindNumber("cfgGoal", "goal", () => renderAll());
 bindToggle("cfgAutoBreak", "autoBreak");
 bindToggle("cfgAutoPomo", "autoPomo");
 bindToggle("cfgSound", "sound");
 bindToggle("cfgClick", "click");
+bindToggle("cfgRestWeekends", "restWeekends", () => renderAll());
 bindToggle("cfgNotify", "notify", (on) => {
   if (on && typeof Notification !== "undefined" && Notification.permission === "default") Notification.requestPermission();
 });
+
+document.getElementById("buyFreeze").addEventListener("click", buyFreeze);
+document.querySelectorAll(".vt-btn").forEach((b) =>
+  b.addEventListener("click", () => { state.config.chartView = b.dataset.view; saveConfig(); openReport(); })
+);
 
 /* sound controls */
 (() => {
   const alarmSel = document.getElementById("cfgAlarm");
   alarmSel.value = state.config.alarm;
-  alarmSel.addEventListener("change", () => { state.config.alarm = alarmSel.value; save(); playAlarm(); });
+  alarmSel.addEventListener("change", () => { state.config.alarm = alarmSel.value; saveConfig(); playAlarm(); });
 
   const vol = document.getElementById("cfgVolume");
   vol.value = Math.round((state.config.volume ?? 0.5) * 100);
-  vol.addEventListener("input", () => { state.config.volume = vol.value / 100; save(); });
+  vol.addEventListener("input", () => { state.config.volume = vol.value / 100; saveConfig(); });
   vol.addEventListener("change", () => playClick());
 
   const rep = document.getElementById("cfgRepeat");
   rep.value = state.config.alarmRepeat || 1;
   rep.addEventListener("change", () => {
     state.config.alarmRepeat = Math.max(1, parseInt(rep.value) || 1);
-    rep.value = state.config.alarmRepeat; save();
+    rep.value = state.config.alarmRepeat; saveConfig();
   });
 
   document.getElementById("testSound").addEventListener("click", playAlarm);
@@ -1261,10 +1441,23 @@ document.addEventListener("keydown", (e) => {
 });
 
 /* recompute time when tab regains focus (handles long sleeps) */
-document.addEventListener("visibilitychange", () => { if (!document.hidden) renderTime(); });
+document.addEventListener("visibilitychange", () => { if (!document.hidden) { renderTime(); maybeFreeze(); } });
 /* if the day rolls over while the page is open, refresh the streak view */
 let lastDay = dayKey();
-setInterval(() => { const d = dayKey(); if (d !== lastDay) { lastDay = d; renderAll(); } }, 60 * 1000);
+setInterval(() => { const d = dayKey(); if (d !== lastDay) { lastDay = d; maybeFreeze(); renderAll(); } }, 60 * 1000);
+
+/* first-run join date + auto-apply freezes to cover missed work days */
+function ensureJoined() {
+  if (!state.joined) { state.joined = dayKey(); persistLocalOnly(); }
+}
+function maybeFreeze() {
+  const saved = applyFreezes();
+  if (saved > 0) {
+    toast(`🧊 A streak freeze saved your streak!`);
+    notify(`A streak freeze kept your ${computeStreak().streak}-day streak alive.`);
+    renderAll();
+  }
+}
 
 /* ---------------- Google Drive sync ---------------- */
 /* Offline-first: localStorage is always the live store. Drive is a sync layer on
@@ -1379,15 +1572,26 @@ function mergeDocs(local, remote) {
     for (const k in b) o[k] = Math.max(o[k] || 0, b[k] || 0);
     return o;
   };
+  const mergeTrue = (a = {}, b = {}) => ({ ...a, ...b }); // union of frozen days
   const newer = (remote.updatedAt || 0) > (local.updatedAt || 0) ? remote : local;
+  // config follows the most recent CONFIG edit, independent of session activity,
+  // so changing the daily goal on one device isn't overwritten by newer focus
+  // sessions on another. (Was the bug: config rode the global updatedAt.)
+  const cfgNewer = (remote.cfgUpdatedAt || 0) > (local.cfgUpdatedAt || 0) ? remote : local;
+  const earliestJoin = [local.joined, remote.joined].filter(Boolean).sort()[0] || null;
   return {
-    config: { ...DEFAULTS.config, ...(newer.config || {}) },
+    config: { ...DEFAULTS.config, ...(cfgNewer.config || {}) },
     history: mergeMax(local.history, remote.history),
     minutes: mergeMax(local.minutes, remote.minutes),
+    frozenDays: mergeTrue(local.frozenDays, remote.frozenDays),
     tasks: newer.tasks || [],
     activeTask: newer.activeTask ?? null,
     pomoSinceLong: newer.pomoSinceLong || 0,
+    gems: newer.gems || 0,        // balance: latest device wins
+    freezes: newer.freezes || 0,  // balance: latest device wins
+    joined: earliestJoin,
     updatedAt: Math.max(local.updatedAt || 0, remote.updatedAt || 0),
+    cfgUpdatedAt: Math.max(local.cfgUpdatedAt || 0, remote.cfgUpdatedAt || 0),
   };
 }
 
@@ -1399,7 +1603,10 @@ async function pullAndMerge() {
     driveFileId = f.id;
     const remote = await driveReadFile(f.id);
     state = mergeDocs(state, remote);
+    ensureJoined();
+    applyFreezes();
     persistLocalOnly();
+    syncSettingsUI();
     if (!running) remainingMs = modeDurationMs();
     applyMode(); renderTime(); renderAll(); buildSwatches();
     await driveUpdateFile(driveFileId, state); // converge remote to the merged copy
@@ -1471,8 +1678,10 @@ if (isDev()) {
 }
 
 /* ---------------- boot ---------------- */
+ensureJoined();
 buildSwatches();
 resetTimerTo("pomodoro");
+maybeFreeze();
 renderAll();
 initSync();
 </script>
