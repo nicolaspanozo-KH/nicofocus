@@ -299,6 +299,33 @@
     .cel-strip .wday { transition: none; }
     .cel-strip .wday.pop .ring { animation: none; }
   }
+
+  /* ---- milestone celebration ---- */
+  .celebrate.milestone { background: linear-gradient(160deg, #b8860b 0%, #d4a017 40%, #8a5a00 100%); }
+  .celebrate.milestone.open .cel-flame { animation: flameSpin 1.1s cubic-bezier(0.2, 1.3, 0.4, 1) forwards; }
+  @keyframes flameSpin { 0% { transform: scale(0) rotate(-30deg); } 60% { transform: scale(1.4) rotate(10deg); } 100% { transform: scale(1.15) rotate(0); } }
+  .cel-badge {
+    font-size: 14px; font-weight: 800; letter-spacing: 1.5px;
+    background: rgba(0, 0, 0, 0.22); color: #fff; padding: 8px 16px; border-radius: 999px;
+    margin-bottom: 18px; opacity: 0; transform: translateY(-8px); transition: opacity 0.4s, transform 0.4s;
+  }
+  .cel-badge.show { opacity: 1; transform: translateY(0); }
+
+  /* ---- weekly XP chart (in profile) ---- */
+  .chart-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 6px; }
+  .chart-legend { display: flex; gap: 14px; font-size: 11px; color: #999; font-weight: 600; }
+  .chart-legend span { display: inline-flex; align-items: center; gap: 5px; }
+  .lg-dot { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
+  .chart { display: flex; align-items: flex-end; gap: 7px; height: 130px; margin: 10px 0 4px; }
+  .chart-col { flex: 1; display: flex; flex-direction: column; align-items: center; height: 100%; }
+  .chart-bars { display: flex; align-items: flex-end; gap: 3px; height: 100%; width: 100%; justify-content: center; }
+  .chart-bars .bar { width: 42%; min-height: 2px; border-radius: 4px 4px 0 0; transition: height 0.4s ease; }
+  .chart-bars .bar.prev { background: #e0e0e0; }
+  .chart-bars .bar.cur { background: #45474b; }
+  .chart-lbl { font-size: 11px; color: #aaa; font-weight: 700; margin-top: 7px; }
+  .chart-lbl.today { color: #333; }
+  .week-focus { display: flex; justify-content: space-between; font-size: 13px; color: #666; font-weight: 600; margin: 4px 0 20px; }
+  .week-focus b { color: #333; }
 </style>
 
 <div class="wrap">
@@ -307,9 +334,9 @@
     <div class="top-actions">
       <div class="streak-chip" id="streakChip" title="Your streak">🔥 <span id="streakNum">0</span></div>
       <button class="icon-btn" id="syncBtn" title="Sync across devices">☁ <span id="syncLabel">Sync</span></button>
-      <button class="icon-btn" id="reportBtn" title="Report (R)">
-        <svg viewBox="0 0 512 512"><path d="M64 64c0-17.7-14.3-32-32-32S0 46.3 0 64V400c0 44.2 35.8 80 80 80H480c17.7 0 32-14.3 32-32s-14.3-32-32-32H80c-8.8 0-16-7.2-16-16V64zm406.6 86.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0L320 210.7l-57.4-57.4c-12.5-12.5-32.8-12.5-45.3 0l-112 112c-12.5 12.5-12.5 32.8 0 45.3s32.8 12.5 45.3 0L240 221.3l57.4 57.4c12.5 12.5 32.8 12.5 45.3 0l128-128z"/></svg>
-        Report
+      <button class="icon-btn" id="reportBtn" title="Profile (R)">
+        <svg viewBox="0 0 448 512"><path d="M224 256A128 128 0 1 0 224 0a128 128 0 1 0 0 256zm-45.7 48C79.8 304 0 383.8 0 482.3C0 498.7 13.3 512 29.7 512H418.3c16.4 0 29.7-13.3 29.7-29.7C448 383.8 368.2 304 269.7 304H178.3z"/></svg>
+        Profile
       </button>
       <button class="icon-btn" id="settingsBtn" title="Settings (S)">
         <svg viewBox="0 0 512 512"><path d="M495.9 166.6c3.2 8.7 .5 18.4-6.4 24.6l-43.3 39.4c1.1 8.3 1.7 16.8 1.7 25.4s-.6 17.1-1.7 25.4l43.3 39.4c6.9 6.2 9.6 15.9 6.4 24.6c-4.4 11.9-9.7 23.3-15.8 34.3l-4.7 8.1c-6.6 11-14 21.4-22.1 31.2c-5.9 7.2-15.7 9.6-24.5 6.8l-55.7-17.7c-13.4 10.3-28.2 18.9-44 25.4l-12.5 57.1c-2 9.1-9 16.3-18.2 17.8c-13.8 2.3-28 3.5-42.5 3.5s-28.7-1.2-42.5-3.5c-9.2-1.5-16.2-8.7-18.2-17.8l-12.5-57.1c-15.8-6.5-30.6-15.1-44-25.4L83.1 425.9c-8.8 2.8-18.6 .3-24.5-6.8c-8.1-9.8-15.5-20.2-22.1-31.2l-4.7-8.1c-6.1-11-11.4-22.4-15.8-34.3c-3.2-8.7-.5-18.4 6.4-24.6l43.3-39.4C64.6 273.1 64 264.6 64 256s.6-17.1 1.7-25.4L22.4 191.2c-6.9-6.2-9.6-15.9-6.4-24.6c4.4-11.9 9.7-23.3 15.8-34.3l4.7-8.1c6.6-11 14-21.4 22.1-31.2c5.9-7.2 15.7-9.6 24.5-6.8l55.7 17.7c13.4-10.3 28.2-18.9 44-25.4l12.5-57.1c2-9.1 9-16.3 18.2-17.8C227.3 1.2 241.5 0 256 0s28.7 1.2 42.5 3.5c9.2 1.5 16.2 8.7 18.2 17.8l12.5 57.1c15.8 6.5 30.6 15.1 44 25.4l55.7-17.7c8.8-2.8 18.6-.3 24.5 6.8c8.1 9.8 15.5 20.2 22.1 31.2l4.7 8.1c6.1 11 11.4 22.4 15.8 34.3zM256 336a80 80 0 1 0 0-160 80 80 0 1 0 0 160z"/></svg>
@@ -425,23 +452,43 @@
           <input type="file" id="importFile" accept="application/json" style="display:none" />
         </div>
       </div>
+
+      <div class="set-group" id="devGroup" style="display:none">
+        <div class="g-title">🧪 Testing (local only)</div>
+        <div class="hint" style="margin-top:0;margin-bottom:10px">Only shows on localhost / file. Hidden on your live site so real milestones stay a surprise.</div>
+        <div class="row-btns">
+          <button class="btn-soft" id="testStreak">Test streak</button>
+          <button class="btn-soft" id="testMilestone">Test milestone (100)</button>
+        </div>
+      </div>
     </div>
     <div class="modal-foot"><button class="btn-dark" data-close>OK</button></div>
   </div>
 </div>
 
-<!-- Report modal -->
+<!-- Profile modal -->
 <div class="overlay" id="reportModal">
   <div class="modal">
-    <div class="modal-head">Report <button class="close" data-close>×</button></div>
+    <div class="modal-head">Profile <button class="close" data-close>×</button></div>
     <div class="modal-body">
       <div class="stat-grid">
         <div class="stat"><div class="num" id="rStreak">0</div><div class="cap">🔥 Day streak</div></div>
         <div class="stat"><div class="num" id="rBest">0</div><div class="cap">Best streak</div></div>
-        <div class="stat"><div class="num" id="rToday">0</div><div class="cap">Today</div></div>
-        <div class="stat"><div class="num" id="rHours">0h</div><div class="cap">Focus time (all)</div></div>
+        <div class="stat"><div class="num" id="rXp">0</div><div class="cap">⭐ Total XP</div></div>
+        <div class="stat"><div class="num" id="rWeekFocus">0h</div><div class="cap">Focus this week</div></div>
       </div>
-      <div class="heat-title">Last 13 weeks</div>
+
+      <div class="chart-head">
+        <div class="heat-title" style="margin:0">This week's XP</div>
+        <div class="chart-legend">
+          <span><i class="lg-dot" id="lgCur"></i>This week</span>
+          <span><i class="lg-dot" style="background:#e0e0e0"></i>Last week</span>
+        </div>
+      </div>
+      <div class="chart" id="chart"></div>
+      <div class="week-focus" id="weekFocus"></div>
+
+      <div class="heat-title">Activity (last 13 weeks)</div>
       <div class="heat" id="heat"></div>
       <div class="heat-legend">
         Less
@@ -461,6 +508,7 @@
 
 <!-- Streak celebration -->
 <div class="celebrate" id="celebrate">
+  <div class="cel-badge" id="celBadge" style="display:none">🏆 MILESTONE</div>
   <div class="cel-flame" id="celFlame">🔥</div>
   <div class="cel-num" id="celNum">0</div>
   <div class="cel-copy" id="celCopy">day streak!</div>
@@ -534,10 +582,12 @@ function shiftDay(key, delta) {
 }
 
 /* ---------------- streak logic (Duolingo-style) ---------------- */
+/* A day counts toward the streak as soon as you finish ONE session. The daily goal
+   is a separate personal target shown in the progress bar, it does not gate the streak. */
+const STREAK_GOAL = 1;
 function computeStreak() {
-  const goal = state.config.goal;
   const today = dayKey();
-  const met = (k) => (state.history[k] || 0) >= goal;
+  const met = (k) => (state.history[k] || 0) >= STREAK_GOAL;
   let cursor = today;
   let atRisk = false;
   // Today not yet done? streak still alive via yesterday (grace until midnight).
@@ -547,8 +597,7 @@ function computeStreak() {
   return { streak, atRisk: atRisk && streak > 0 };
 }
 function computeBest() {
-  const goal = state.config.goal;
-  const days = Object.keys(state.history).filter((k) => state.history[k] >= goal).sort();
+  const days = Object.keys(state.history).filter((k) => state.history[k] >= STREAK_GOAL).sort();
   let best = 0, run = 0, prev = null;
   for (const k of days) {
     if (prev && shiftDay(prev, 1) === k) run++; else run = 1;
@@ -659,12 +708,17 @@ function recordSession() {
     if (t) t.done = (t.done || 0) + 1;
   }
   save();
-  // celebrate the moment the streak grows (i.e. today's goal just got met)
+  // celebrate the moment the streak grows: the first session of the day
   const newStreak = computeStreak().streak;
   if (newStreak > prevStreak) {
-    notify(`Daily goal hit! 🔥 ${newStreak}-day streak.`);
-    celebrate(prevStreak, newStreak);
+    notify(`Streak extended! 🔥 ${newStreak}-day streak.`);
+    celebrate(prevStreak, newStreak, isMilestone(newStreak));
   }
+}
+
+/* milestone days get the bigger celebration */
+function isMilestone(n) {
+  return n === 7 || n === 14 || n === 30 || n === 50 || n === 100 || n === 365 || (n > 0 && n % 100 === 0);
 }
 
 /* ---------------- sound engine (synthesized, no audio files) ---------------- */
@@ -722,6 +776,15 @@ function playStreakSound() {
     [[523, 0], [659, 0.12], [784, 0.24], [1047, 0.4]].forEach(([f, s]) => blip(f, s, 0.45, "triangle", v * 0.5));
   } catch (e) { /* ignore */ }
 }
+function playMilestoneSound() {
+  try {
+    const v = state.config.volume ?? 0.5;
+    if (v <= 0) return;
+    // a longer rising fanfare for milestones
+    [[523, 0], [659, 0.1], [784, 0.2], [1047, 0.3], [1319, 0.42], [1568, 0.56], [2093, 0.74]]
+      .forEach(([f, s]) => blip(f, s, 0.6, "triangle", v * 0.55));
+  } catch (e) { /* ignore */ }
+}
 function confetti() {
   const colors = ["#f94144", "#f9c74f", "#90be6d", "#43aa8b", "#577590", "#f3722c"];
   for (let i = 0; i < 80; i++) {
@@ -749,7 +812,6 @@ function weekDays() {
   const today = new Date();
   const sunday = new Date(today);
   sunday.setDate(today.getDate() - today.getDay()); // back to Sunday
-  const goal = state.config.goal;
   const tKey = dayKey(today);
   const out = [];
   for (let i = 0; i < 7; i++) {
@@ -758,7 +820,7 @@ function weekDays() {
     const k = dayKey(d);
     out.push({
       letter: WEEK_LETTERS[i], key: k,
-      done: (state.history[k] || 0) >= goal,
+      done: (state.history[k] || 0) >= STREAK_GOAL,
       isToday: k === tKey,
       future: d > today && k !== tKey,
     });
@@ -788,38 +850,51 @@ function countUp(elm, from, to, dur) {
   requestAnimationFrame(frame);
 }
 
-function celebrate(prevStreak, newStreak) {
+function celebrate(prevStreak, newStreak, milestone = false) {
   const cel = document.getElementById("celebrate");
   const strip = document.getElementById("celStrip");
   const numEl = document.getElementById("celNum");
   const copyEl = document.getElementById("celCopy");
   const btnEl = document.getElementById("celBtn");
+  const badgeEl = document.getElementById("celBadge");
 
   renderWeek(strip);
   numEl.textContent = prevStreak;
-  copyEl.textContent = newStreak === 1 ? "day streak!" : "day streak!";
+  copyEl.textContent = "day streak!";
   copyEl.classList.remove("show");
   btnEl.classList.remove("show");
+  cel.classList.toggle("milestone", milestone);
+  badgeEl.style.display = milestone ? "block" : "none";
+  badgeEl.textContent = "🏆 " + newStreak + "-DAY MILESTONE";
+  badgeEl.classList.remove("show");
   cel.classList.add("open");
 
   confetti();
-  playStreakSound();
+  if (milestone) {
+    playMilestoneSound();
+    setTimeout(confetti, 350);
+    setTimeout(confetti, 750);
+  } else {
+    playStreakSound();
+  }
 
   const reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   const days = strip.querySelectorAll(".wday");
   if (reduce) {
     numEl.textContent = newStreak;
     days.forEach((w) => w.classList.add("in"));
+    badgeEl.classList.add("show");
     copyEl.classList.add("show");
     btnEl.classList.add("show");
     return;
   }
-  setTimeout(() => countUp(numEl, prevStreak, newStreak, 700), 350);
+  const dur = milestone ? 1100 : 700;
+  setTimeout(() => countUp(numEl, prevStreak, newStreak, dur), 350);
   days.forEach((w, i) => setTimeout(() => w.classList.add("in"), 650 + i * 90));
   const todayEl = strip.querySelector(".wday.today");
   const lastBeat = 650 + 7 * 90;
   setTimeout(() => { if (todayEl) todayEl.classList.add("pop"); }, lastBeat);
-  setTimeout(() => { copyEl.classList.add("show"); btnEl.classList.add("show"); }, lastBeat + 220);
+  setTimeout(() => { badgeEl.classList.add("show"); copyEl.classList.add("show"); btnEl.classList.add("show"); }, lastBeat + 220);
 }
 
 /* ---------------- DOM refs ---------------- */
@@ -852,30 +927,36 @@ function dayNumber() {
   const d = new Date();
   return Math.floor(new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime() / 86400000);
 }
+/* before any session today: one session keeps the streak */
+const START_MSGS = [
+  "One session keeps your streak alive. 🔥",
+  "Just 1 focus block today. You've got this. 💪",
+  "Start now: a single session protects your streak. ✨",
+  "The streak only needs one. Let's begin. 🚀",
+  "Press start. One session is all it takes today. 🔥",
+];
+/* streak safe (>=1 today) but still below the personal daily goal */
+const MID_MSGS = [
+  "Streak safe! {n} more to hit today's goal. 🔥",
+  "Locked in for today. {n} to reach your goal. 💪",
+  "Nice. {n} more session{s} for your full goal. ✨",
+  "Streak secured, now chase the goal: {n} to go. 🚀",
+];
+/* daily goal fully reached */
 const DONE_MSGS = [
-  "Goal reached: streak safe today! 🔥",
-  "Nailed it. Today's locked in. 🔥",
-  "That's a wrap: streak protected! 💪",
+  "Daily goal smashed. Momentum is yours. 🚀",
+  "Full goal done. Today's locked in. 🔥",
+  "That's a wrap: goal complete! 💪",
   "Done and dusted. Your future self says thanks. ✨",
-  "Goal smashed. Momentum is yours. 🚀",
-  "Another day in the books. Keep the chain alive! ⛓️",
-  "Focus delivered, streak secured. 🔥",
-  "You showed up today. That's the whole game. 🌱",
+  "Goal reached and streak secured. 🔥",
+  "You showed up and went all the way. 🌱",
 ];
-const TODO_MSGS = [
-  "{n} more to keep your streak alive.",
-  "Just {n} to go: don't break the chain. ⛓️",
-  "{n} session{s} between you and a safe streak.",
-  "Almost there: {n} more focus block{s}.",
-  "{n} more and today counts. You've got this. 💪",
-  "Start small: {n} session{s} left today.",
-  "Protect the streak, {n} to go. 🔥",
-  "Future you is rooting for {n} more. ✨",
-];
-function dailyMessage(remaining) {
-  if (remaining <= 0) return DONE_MSGS[dayNumber() % DONE_MSGS.length];
-  const tpl = TODO_MSGS[dayNumber() % TODO_MSGS.length];
-  return tpl.replace("{n}", remaining).replace("{s}", remaining === 1 ? "" : "s");
+function pickDaily(arr) { return arr[dayNumber() % arr.length]; }
+function dailyMessage(todayCount, goal) {
+  if (todayCount <= 0) return pickDaily(START_MSGS);
+  if (todayCount >= goal) return pickDaily(DONE_MSGS);
+  const n = goal - todayCount;
+  return pickDaily(MID_MSGS).replace("{n}", n).replace("{s}", n === 1 ? "" : "s");
 }
 
 /* ---------------- render ---------------- */
@@ -889,7 +970,7 @@ function renderAll() {
   el.todayCount.textContent = today;
   el.goalCount.textContent = goal;
   el.todayBar.style.width = Math.min(100, (today / goal) * 100) + "%";
-  el.goalMsg.textContent = dailyMessage(goal - today);
+  el.goalMsg.textContent = dailyMessage(today, goal);
 
   el.roundCounter.textContent = "#" + ((state.pomoSinceLong || 0) % state.config.interval + 1);
   renderWeek(document.getElementById("weekStrip"));
@@ -924,16 +1005,64 @@ function renderTasks() {
   });
 }
 
-/* ---------------- report ---------------- */
+/* ---------------- profile ---------------- */
+/* XP equals focus minutes: a longer session is worth more. */
+function xpOn(key) { return state.minutes[key] || 0; }
+function fmtHours(min) { return (min / 60).toFixed(1) + "h"; }
+
 function openReport() {
   const { streak } = computeStreak();
   document.getElementById("rStreak").textContent = streak;
   document.getElementById("rBest").textContent = Math.max(computeBest(), streak);
-  document.getElementById("rToday").textContent = state.history[dayKey()] || 0;
-  const totalMin = Object.values(state.minutes).reduce((a, b) => a + b, 0);
-  document.getElementById("rHours").textContent = (totalMin / 60).toFixed(1) + "h";
+
+  const totalXp = Object.values(state.minutes).reduce((a, b) => a + b, 0);
+  document.getElementById("rXp").textContent = totalXp.toLocaleString();
+
+  // rolling 7-day window ending today
+  const today = dayKey();
+  let weekMin = 0, prevWeekMin = 0;
+  for (let i = 0; i < 7; i++) {
+    weekMin += xpOn(shiftDay(today, -i));
+    prevWeekMin += xpOn(shiftDay(today, -i - 7));
+  }
+  document.getElementById("rWeekFocus").textContent = fmtHours(weekMin);
+  document.getElementById("weekFocus").innerHTML =
+    `This week <b>${fmtHours(weekMin)}</b><span>Last week <b>${fmtHours(prevWeekMin)}</b></span>`;
+
+  renderChart();
   renderHeat();
   document.getElementById("reportModal").classList.add("open");
+}
+
+function renderChart() {
+  const chart = document.getElementById("chart");
+  chart.innerHTML = "";
+  document.getElementById("lgCur").style.background = `rgb(${state.config.color})`;
+  const today = dayKey();
+  const narrow = new Intl.DateTimeFormat(undefined, { weekday: "narrow" });
+  // build 7 rolling days, oldest -> today (left to right)
+  const cols = [];
+  let max = 1;
+  for (let i = 6; i >= 0; i--) {
+    const k = shiftDay(today, -i);
+    const cur = xpOn(k);
+    const prev = xpOn(shiftDay(k, -7));
+    max = Math.max(max, cur, prev);
+    const [y, m, d] = k.split("-").map(Number);
+    cols.push({ k, cur, prev, label: narrow.format(new Date(y, m - 1, d)), isToday: k === today });
+  }
+  cols.forEach((c) => {
+    const col = document.createElement("div");
+    col.className = "chart-col";
+    col.innerHTML = `
+      <div class="chart-bars">
+        <div class="bar cur" style="height:${(c.cur / max) * 100}%" title="${c.cur} XP this week"></div>
+        <div class="bar prev" style="height:${(c.prev / max) * 100}%" title="${c.prev} XP last week"></div>
+      </div>
+      <div class="chart-lbl${c.isToday ? " today" : ""}">${c.label}</div>`;
+    col.querySelector(".bar.cur").style.background = `rgb(${state.config.color})`;
+    chart.appendChild(col);
+  });
 }
 function heatColor(n) {
   if (!n) return "#ebedf0";
@@ -1327,6 +1456,19 @@ document.getElementById("connectBtn").addEventListener("click", () => {
     initSync();
   });
 })();
+
+/* testing tools: only on localhost / file, never on the live site */
+function isDev() {
+  return location.protocol === "file:" || ["localhost", "127.0.0.1"].includes(location.hostname);
+}
+if (isDev()) {
+  document.getElementById("devGroup").style.display = "";
+  document.getElementById("testStreak").addEventListener("click", () => {
+    const s = computeStreak().streak;
+    celebrate(s, s + 1, false);
+  });
+  document.getElementById("testMilestone").addEventListener("click", () => celebrate(99, 100, true));
+}
 
 /* ---------------- boot ---------------- */
 buildSwatches();
