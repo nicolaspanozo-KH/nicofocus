@@ -1,10 +1,20 @@
 # nicofocus
 
-A personal Pomodoro timer with a Duolingo-style daily streak. Single static file, no
-build step, no backend. Runs on GitHub Pages. Data is stored locally and (optionally)
-synced to a private folder in your own Google Drive.
+A personal Pomodoro timer with a Duolingo-style daily streak. No build step, no backend.
+Runs on GitHub Pages. Data is stored locally and (optionally) synced to a private folder
+in your own Google Drive.
 
 Live: https://nicolaspanozo-kh.github.io/nicofocus/
+
+## Project structure
+
+Three static files, no tooling - edit and push:
+
+- `index.html` - markup only (links the stylesheet and script)
+- `styles.css` - all styles
+- `app.js` - all logic, written to read top to bottom as a story: storage -> dates ->
+  streak -> timer -> sound -> celebrations -> render -> profile -> settings -> events ->
+  sync -> boot. The header comment documents the localStorage keys and the saved data shape.
 
 ## Features
 
