@@ -1,0 +1,1081 @@
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>nicofocus</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🍅</text></svg>" />
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+
+<style>
+  :root {
+    --bg: rgb(186 73 73);
+    --bg-pomodoro: rgb(186 73 73);
+    --bg-short: rgb(56 133 138);
+    --bg-long: rgb(57 112 151);
+    --card: rgba(255, 255, 255, 0.1);
+    --card-strong: rgba(255, 255, 255, 0.2);
+    --ink: #fff;
+    --ink-dim: rgba(255, 255, 255, 0.75);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body { height: 100%; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    transition: background-color 0.5s ease;
+    min-height: 100%;
+    -webkit-font-smoothing: antialiased;
+    padding: 0 16px 60px;
+  }
+
+  .wrap { max-width: 480px; margin: 0 auto; }
+
+  /* ---- top bar ---- */
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 18px 4px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.18);
+    margin-bottom: 28px;
+  }
+  .brand { display: flex; align-items: center; gap: 8px; font-weight: 800; font-size: 19px; }
+  .brand .dot { font-size: 22px; }
+  .top-actions { display: flex; align-items: center; gap: 8px; }
+
+  .streak-chip {
+    display: flex; align-items: center; gap: 5px;
+    background: var(--card); border-radius: 8px;
+    padding: 6px 10px; font-weight: 700; font-size: 14px;
+    cursor: pointer; user-select: none;
+  }
+  .streak-chip.at-risk { opacity: 0.6; }
+
+  .icon-btn {
+    display: flex; align-items: center; gap: 6px;
+    background: var(--card); color: var(--ink);
+    border: none; border-radius: 8px; cursor: pointer;
+    padding: 7px 11px; font-size: 14px; font-weight: 600;
+    transition: background 0.15s;
+  }
+  .icon-btn:hover { background: var(--card-strong); }
+  .icon-btn svg { width: 15px; height: 15px; fill: currentColor; }
+
+  /* ---- timer card ---- */
+  .timer-card {
+    background: var(--card);
+    border-radius: 12px;
+    padding: 28px 20px 36px;
+    text-align: center;
+    margin-bottom: 24px;
+  }
+  .modes { display: flex; justify-content: center; gap: 8px; margin-bottom: 18px; flex-wrap: wrap; }
+  .mode-btn {
+    background: transparent; color: var(--ink); border: none;
+    border-radius: 6px; padding: 7px 14px; font-size: 15px; font-weight: 600;
+    cursor: pointer; opacity: 0.85; transition: background 0.15s;
+  }
+  .mode-btn.active { background: rgba(0, 0, 0, 0.18); opacity: 1; }
+
+  .time {
+    font-size: clamp(72px, 22vw, 120px);
+    font-weight: 800; line-height: 1;
+    margin: 8px 0 24px; letter-spacing: 2px;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .controls { display: flex; align-items: center; justify-content: center; gap: 12px; position: relative; }
+  .start-btn {
+    background: var(--ink); color: var(--bg);
+    border: none; border-radius: 8px;
+    font-size: 22px; font-weight: 800; letter-spacing: 1px;
+    padding: 14px 0; width: 200px; cursor: pointer;
+    box-shadow: 0 6px 0 rgba(0, 0, 0, 0.18);
+    transition: transform 0.06s, box-shadow 0.06s, color 0.5s;
+    text-transform: uppercase;
+  }
+  .start-btn:active { transform: translateY(4px); box-shadow: 0 2px 0 rgba(0, 0, 0, 0.18); }
+
+  .skip-btn {
+    position: absolute; right: 0;
+    background: transparent; border: none; color: var(--ink);
+    cursor: pointer; opacity: 0; transition: opacity 0.2s;
+    padding: 10px;
+  }
+  .skip-btn.show { opacity: 0.9; }
+  .skip-btn svg { width: 26px; height: 26px; fill: currentColor; }
+
+  .round-counter { margin-top: 26px; opacity: 0.55; font-weight: 700; }
+  .focus-msg { margin-top: 6px; font-size: 15px; opacity: 0.9; }
+
+  /* ---- today bar ---- */
+  .today {
+    background: var(--card); border-radius: 12px;
+    padding: 16px 18px; margin-bottom: 20px;
+  }
+  .today-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 10px; }
+  .today-head .label { font-weight: 700; font-size: 14px; opacity: 0.85; }
+  .today-head .val { font-weight: 800; font-size: 14px; }
+  .bar { height: 10px; background: rgba(0, 0, 0, 0.18); border-radius: 6px; overflow: hidden; }
+  .bar > div { height: 100%; background: var(--ink); border-radius: 6px; transition: width 0.4s ease; }
+  .goal-done { font-size: 13px; margin-top: 9px; opacity: 0.9; }
+
+  /* ---- tasks ---- */
+  .tasks { }
+  .tasks-head {
+    display: flex; justify-content: space-between; align-items: center;
+    border-bottom: 2px solid rgba(255, 255, 255, 0.25);
+    padding-bottom: 10px; margin-bottom: 14px;
+  }
+  .tasks-head h2 { font-size: 17px; }
+  .tasks-head button {
+    background: var(--card); border: none; color: var(--ink);
+    border-radius: 6px; padding: 5px 9px; cursor: pointer; font-size: 13px; font-weight: 600;
+  }
+  .task {
+    background: #fff; color: #555; border-radius: 8px;
+    padding: 12px 14px; margin-bottom: 9px;
+    display: flex; align-items: center; gap: 11px;
+    border-left: 5px solid transparent; cursor: pointer;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+  }
+  .task.active { border-left-color: var(--bg); }
+  .task.done { opacity: 0.55; }
+  .task.done .task-name { text-decoration: line-through; }
+  .check {
+    width: 22px; height: 22px; border-radius: 50%;
+    border: 2px solid #ccc; flex-shrink: 0; position: relative;
+  }
+  .task.done .check { background: #aaa; border-color: #aaa; }
+  .task.done .check::after {
+    content: ""; position: absolute; left: 6px; top: 2px;
+    width: 5px; height: 10px; border: solid #fff; border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
+  }
+  .task-name { flex: 1; font-weight: 600; font-size: 15px; }
+  .task-pomo { color: #999; font-weight: 700; font-size: 14px; }
+  .task-del {
+    background: none; border: none; color: #ccc; cursor: pointer;
+    font-size: 18px; padding: 0 4px; line-height: 1;
+  }
+  .task-del:hover { color: #e66; }
+
+  .add-task {
+    width: 100%; border: 2px dashed rgba(255, 255, 255, 0.45);
+    background: rgba(0, 0, 0, 0.08); color: var(--ink);
+    border-radius: 10px; padding: 15px; font-size: 15px; font-weight: 700;
+    cursor: pointer; transition: background 0.15s;
+  }
+  .add-task:hover { background: rgba(0, 0, 0, 0.16); }
+
+  /* ---- modal ---- */
+  .overlay {
+    position: fixed; inset: 0; background: rgba(0, 0, 0, 0.45);
+    display: none; align-items: flex-start; justify-content: center;
+    padding: 40px 16px; overflow-y: auto; z-index: 50;
+  }
+  .overlay.open { display: flex; }
+  .modal {
+    background: #fff; color: #333; border-radius: 14px;
+    width: 100%; max-width: 420px; padding: 0; overflow: hidden;
+  }
+  .modal-head {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 16px 22px; border-bottom: 1px solid #eee; font-weight: 800; font-size: 16px;
+    color: #555;
+  }
+  .modal-head .close { background: none; border: none; font-size: 22px; cursor: pointer; color: #bbb; line-height: 1; }
+  .modal-body { padding: 18px 22px 24px; }
+
+  .set-group { margin-bottom: 22px; }
+  .set-group > .g-title {
+    text-transform: uppercase; font-size: 12px; letter-spacing: 1px;
+    color: #999; font-weight: 700; margin-bottom: 12px;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .set-row { display: flex; justify-content: space-between; align-items: center; padding: 9px 0; }
+  .set-row .name { font-weight: 600; color: #555; font-size: 14px; }
+  .time-inputs { display: flex; gap: 12px; }
+  .time-inputs .ti { flex: 1; }
+  .time-inputs label { display: block; font-size: 12px; color: #999; font-weight: 600; margin-bottom: 5px; }
+  input[type="number"], input[type="text"] {
+    border: none; background: #efefef; border-radius: 8px;
+    padding: 10px; font-size: 15px; font-weight: 600; color: #444; width: 100%;
+  }
+  input[type="number"].small { width: 72px; text-align: center; }
+
+  /* toggle */
+  .toggle { width: 46px; height: 26px; background: #ccc; border-radius: 13px; position: relative; cursor: pointer; transition: background 0.2s; flex-shrink: 0; }
+  .toggle.on { background: #444; }
+  .toggle::after { content: ""; position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; background: #fff; border-radius: 50%; transition: left 0.2s; }
+  .toggle.on::after { left: 23px; }
+
+  .swatches { display: flex; gap: 9px; }
+  .swatch { width: 28px; height: 28px; border-radius: 50%; cursor: pointer; border: 3px solid transparent; }
+  .swatch.sel { border-color: rgba(0, 0, 0, 0.3); }
+
+  .modal-foot { padding: 14px 22px; background: #f7f7f7; display: flex; justify-content: flex-end; gap: 10px; }
+  .btn-dark { background: #45474b; color: #fff; border: none; border-radius: 8px; padding: 10px 18px; font-weight: 700; cursor: pointer; }
+  .btn-ghost { background: none; border: none; color: #999; font-weight: 700; cursor: pointer; padding: 10px 14px; }
+
+  /* ---- report ---- */
+  .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 22px; }
+  .stat { background: #f5f5f5; border-radius: 10px; padding: 16px; text-align: center; }
+  .stat .num { font-size: 30px; font-weight: 800; color: #444; }
+  .stat .cap { font-size: 12px; color: #999; font-weight: 600; margin-top: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
+
+  .heat-title { font-size: 12px; text-transform: uppercase; letter-spacing: 1px; color: #999; font-weight: 700; margin-bottom: 12px; }
+  .heat { display: flex; gap: 3px; overflow-x: auto; padding-bottom: 6px; }
+  .heat-col { display: flex; flex-direction: column; gap: 3px; }
+  .heat-cell { width: 13px; height: 13px; border-radius: 3px; background: #ebedf0; }
+  .heat-legend { display: flex; align-items: center; gap: 6px; justify-content: flex-end; margin-top: 10px; font-size: 11px; color: #999; }
+  .heat-legend .heat-cell { width: 11px; height: 11px; }
+
+  .danger-zone { margin-top: 8px; border-top: 1px solid #eee; padding-top: 16px; }
+  .link-btn { background: none; border: none; color: #c0392b; font-weight: 700; cursor: pointer; font-size: 13px; padding: 4px 0; }
+  .row-btns { display: flex; gap: 10px; flex-wrap: wrap; }
+  .btn-soft { background: #efefef; border: none; border-radius: 8px; padding: 9px 14px; font-weight: 700; color: #555; cursor: pointer; font-size: 13px; }
+
+  .hint { font-size: 12px; color: #aaa; margin-top: 6px; line-height: 1.4; }
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="brand"><span class="dot">🍅</span> nicofocus</div>
+    <div class="top-actions">
+      <div class="streak-chip" id="streakChip" title="Your streak">🔥 <span id="streakNum">0</span></div>
+      <button class="icon-btn" id="syncBtn" title="Sync across devices">☁ <span id="syncLabel">Sync</span></button>
+      <button class="icon-btn" id="reportBtn" title="Report (R)">
+        <svg viewBox="0 0 512 512"><path d="M64 64c0-17.7-14.3-32-32-32S0 46.3 0 64V400c0 44.2 35.8 80 80 80H480c17.7 0 32-14.3 32-32s-14.3-32-32-32H80c-8.8 0-16-7.2-16-16V64zm406.6 86.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0L320 210.7l-57.4-57.4c-12.5-12.5-32.8-12.5-45.3 0l-112 112c-12.5 12.5-12.5 32.8 0 45.3s32.8 12.5 45.3 0L240 221.3l57.4 57.4c12.5 12.5 32.8 12.5 45.3 0l128-128z"/></svg>
+        Report
+      </button>
+      <button class="icon-btn" id="settingsBtn" title="Settings (S)">
+        <svg viewBox="0 0 512 512"><path d="M495.9 166.6c3.2 8.7 .5 18.4-6.4 24.6l-43.3 39.4c1.1 8.3 1.7 16.8 1.7 25.4s-.6 17.1-1.7 25.4l43.3 39.4c6.9 6.2 9.6 15.9 6.4 24.6c-4.4 11.9-9.7 23.3-15.8 34.3l-4.7 8.1c-6.6 11-14 21.4-22.1 31.2c-5.9 7.2-15.7 9.6-24.5 6.8l-55.7-17.7c-13.4 10.3-28.2 18.9-44 25.4l-12.5 57.1c-2 9.1-9 16.3-18.2 17.8c-13.8 2.3-28 3.5-42.5 3.5s-28.7-1.2-42.5-3.5c-9.2-1.5-16.2-8.7-18.2-17.8l-12.5-57.1c-15.8-6.5-30.6-15.1-44-25.4L83.1 425.9c-8.8 2.8-18.6 .3-24.5-6.8c-8.1-9.8-15.5-20.2-22.1-31.2l-4.7-8.1c-6.1-11-11.4-22.4-15.8-34.3c-3.2-8.7-.5-18.4 6.4-24.6l43.3-39.4C64.6 273.1 64 264.6 64 256s.6-17.1 1.7-25.4L22.4 191.2c-6.9-6.2-9.6-15.9-6.4-24.6c4.4-11.9 9.7-23.3 15.8-34.3l4.7-8.1c6.6-11 14-21.4 22.1-31.2c5.9-7.2 15.7-9.6 24.5-6.8l55.7 17.7c13.4-10.3 28.2-18.9 44-25.4l12.5-57.1c2-9.1 9-16.3 18.2-17.8C227.3 1.2 241.5 0 256 0s28.7 1.2 42.5 3.5c9.2 1.5 16.2 8.7 18.2 17.8l12.5 57.1c15.8 6.5 30.6 15.1 44 25.4l55.7-17.7c8.8-2.8 18.6-.3 24.5 6.8c8.1 9.8 15.5 20.2 22.1 31.2l4.7 8.1c6.1 11 11.4 22.4 15.8 34.3zM256 336a80 80 0 1 0 0-160 80 80 0 1 0 0 160z"/></svg>
+        Setting
+      </button>
+    </div>
+  </header>
+
+  <div class="timer-card">
+    <div class="modes">
+      <button class="mode-btn active" data-mode="pomodoro">Pomodoro</button>
+      <button class="mode-btn" data-mode="short">Short Break</button>
+      <button class="mode-btn" data-mode="long">Long Break</button>
+    </div>
+    <div class="time" id="time">45:00</div>
+    <div class="controls">
+      <button class="start-btn" id="startBtn">Start</button>
+      <button class="skip-btn" id="skipBtn" title="Skip">
+        <svg viewBox="0 0 320 512"><path d="M52.5 440.6c-9.5 7.9-22.8 9.7-34.1 4.4S0 428.4 0 416V96C0 83.6 7.2 72.3 18.4 67s24.5-3.6 34.1 4.4l192 160L256 241V96c0-17.7 14.3-32 32-32s32 14.3 32 32V416c0 17.7-14.3 32-32 32s-32-14.3-32-32V271l-11.5 9.6-192 160z"/></svg>
+      </button>
+    </div>
+    <div class="round-counter" id="roundCounter">#1</div>
+    <div class="focus-msg" id="focusMsg">Time to focus!</div>
+  </div>
+
+  <div class="today">
+    <div class="today-head">
+      <span class="label">Today's sessions</span>
+      <span class="val"><span id="todayCount">0</span> / <span id="goalCount">4</span></span>
+    </div>
+    <div class="bar"><div id="todayBar" style="width:0%"></div></div>
+    <div class="goal-done" id="goalMsg"></div>
+  </div>
+
+  <div class="tasks">
+    <div class="tasks-head">
+      <h2>Tasks</h2>
+      <button id="clearDone">Clear finished</button>
+    </div>
+    <div id="taskList"></div>
+    <button class="add-task" id="addTask">＋ Add Task</button>
+  </div>
+</div>
+
+<!-- Settings modal -->
+<div class="overlay" id="settingsModal">
+  <div class="modal">
+    <div class="modal-head">Setting <button class="close" data-close>×</button></div>
+    <div class="modal-body">
+      <div class="set-group">
+        <div class="g-title">⏱ Timer</div>
+        <div class="set-row"><span class="name">Time (minutes)</span></div>
+        <div class="time-inputs">
+          <div class="ti"><label>Pomodoro</label><input type="number" id="cfgPomodoro" min="1" /></div>
+          <div class="ti"><label>Short Break</label><input type="number" id="cfgShort" min="1" /></div>
+          <div class="ti"><label>Long Break</label><input type="number" id="cfgLong" min="1" /></div>
+        </div>
+        <div class="set-row"><span class="name">Auto start breaks</span><div class="toggle" id="cfgAutoBreak"></div></div>
+        <div class="set-row"><span class="name">Auto start pomodoros</span><div class="toggle" id="cfgAutoPomo"></div></div>
+        <div class="set-row"><span class="name">Long break interval</span><input type="number" id="cfgInterval" class="small" min="1" /></div>
+      </div>
+
+      <div class="set-group">
+        <div class="g-title">🔥 Streak</div>
+        <div class="set-row"><span class="name">Daily goal (sessions)</span><input type="number" id="cfgGoal" class="small" min="1" /></div>
+        <div class="hint">Finish this many focus sessions in a day to keep your streak alive, Duolingo-style. Miss a full day and it resets.</div>
+      </div>
+
+      <div class="set-group">
+        <div class="g-title">🔔 Sound</div>
+        <div class="set-row"><span class="name">Alarm when timer ends</span><div class="toggle on" id="cfgSound"></div></div>
+        <div class="set-row"><span class="name">Desktop notification</span><div class="toggle" id="cfgNotify"></div></div>
+      </div>
+
+      <div class="set-group">
+        <div class="g-title">🎨 Theme</div>
+        <div class="set-row">
+          <span class="name">Pomodoro color</span>
+          <div class="swatches" id="swatches"></div>
+        </div>
+      </div>
+
+      <div class="set-group">
+        <div class="g-title">☁ Sync (Google Drive)</div>
+        <div class="hint" id="syncStatus" style="margin-top:0;margin-bottom:10px">Not connected. Your data is only in this browser.</div>
+        <div class="set-row"><span class="name">Google account</span><button class="btn-soft" id="connectBtn">Connect</button></div>
+        <div class="set-row" style="flex-direction:column;align-items:stretch">
+          <label style="font-size:12px;color:#999;font-weight:600;margin-bottom:6px">Google OAuth Client ID</label>
+          <input type="text" id="clientIdInput" placeholder="xxxxx.apps.googleusercontent.com" />
+          <div class="hint">One-time setup. The README in your repo explains how to create this in Google Cloud (takes ~3 min). It's safe to commit - it's not a secret.</div>
+        </div>
+      </div>
+
+      <div class="set-group">
+        <div class="g-title">💾 Backup</div>
+        <div class="hint" style="margin-top:0;margin-bottom:10px">Manual export/import, works with no account at all.</div>
+        <div class="row-btns">
+          <button class="btn-soft" id="exportBtn">Export data</button>
+          <button class="btn-soft" id="importBtn">Import data</button>
+          <input type="file" id="importFile" accept="application/json" style="display:none" />
+        </div>
+      </div>
+    </div>
+    <div class="modal-foot"><button class="btn-dark" data-close>OK</button></div>
+  </div>
+</div>
+
+<!-- Report modal -->
+<div class="overlay" id="reportModal">
+  <div class="modal">
+    <div class="modal-head">Report <button class="close" data-close>×</button></div>
+    <div class="modal-body">
+      <div class="stat-grid">
+        <div class="stat"><div class="num" id="rStreak">0</div><div class="cap">🔥 Day streak</div></div>
+        <div class="stat"><div class="num" id="rBest">0</div><div class="cap">Best streak</div></div>
+        <div class="stat"><div class="num" id="rToday">0</div><div class="cap">Today</div></div>
+        <div class="stat"><div class="num" id="rHours">0h</div><div class="cap">Focus time (all)</div></div>
+      </div>
+      <div class="heat-title">Last 13 weeks</div>
+      <div class="heat" id="heat"></div>
+      <div class="heat-legend">
+        Less
+        <div class="heat-cell" style="background:#ebedf0"></div>
+        <div class="heat-cell" style="background:#c6e48b"></div>
+        <div class="heat-cell" style="background:#7bc96f"></div>
+        <div class="heat-cell" style="background:#239a3b"></div>
+        <div class="heat-cell" style="background:#196127"></div>
+        More
+      </div>
+      <div class="danger-zone">
+        <button class="link-btn" id="resetBtn">Reset all data</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+"use strict";
+
+/* ---------------- storage (crash-safe) ---------------- */
+const KEY = "nicofocus.v1";
+
+/* Optional: bake your Google OAuth Client ID here to enable Drive sync on every
+   device without re-entering it. Leave "" to set it per-browser via Settings → Sync. */
+const GOOGLE_CLIENT_ID = "";
+const DRIVE_SCOPE = "https://www.googleapis.com/auth/drive.appdata";
+const DRIVE_FILE = "nicofocus.json";
+
+const DEFAULTS = {
+  config: {
+    pomodoro: 45, short: 5, long: 15, interval: 4, goal: 4,
+    autoBreak: false, autoPomo: false, sound: true, notify: false,
+    color: "186 73 73",
+  },
+  history: {},   // "YYYY-MM-DD": sessionCount
+  minutes: {},   // "YYYY-MM-DD": focus minutes (for total time)
+  tasks: [],
+  activeTask: null,
+  pomoSinceLong: 0,
+  updatedAt: 0,  // last local edit, used to reconcile across devices
+};
+
+function load() {
+  try {
+    const raw = localStorage.getItem(KEY);
+    if (!raw) return structuredClone(DEFAULTS);
+    const data = JSON.parse(raw);
+    return {
+      ...structuredClone(DEFAULTS),
+      ...data,
+      config: { ...DEFAULTS.config, ...(data.config || {}) },
+    };
+  } catch (e) {
+    console.warn("load failed, using defaults", e);
+    return structuredClone(DEFAULTS);
+  }
+}
+function persistLocalOnly() {
+  try { localStorage.setItem(KEY, JSON.stringify(state)); }
+  catch (e) { console.warn("save failed", e); }
+}
+function save() {
+  state.updatedAt = Date.now();
+  persistLocalOnly();
+  schedulePush();   // no-op unless signed in to Drive
+}
+
+let state = load();
+
+/* ---------------- date helpers ---------------- */
+const pad = (n) => String(n).padStart(2, "0");
+function dayKey(d = new Date()) {
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+function shiftDay(key, delta) {
+  const [y, m, d] = key.split("-").map(Number);
+  const dt = new Date(y, m - 1, d + delta);
+  return dayKey(dt);
+}
+
+/* ---------------- streak logic (Duolingo-style) ---------------- */
+function computeStreak() {
+  const goal = state.config.goal;
+  const today = dayKey();
+  const met = (k) => (state.history[k] || 0) >= goal;
+  let cursor = today;
+  let atRisk = false;
+  // Today not yet done? streak still alive via yesterday (grace until midnight).
+  if (!met(today)) { cursor = shiftDay(today, -1); atRisk = true; }
+  let streak = 0;
+  while (met(cursor)) { streak++; cursor = shiftDay(cursor, -1); }
+  return { streak, atRisk: atRisk && streak > 0 };
+}
+function computeBest() {
+  const goal = state.config.goal;
+  const days = Object.keys(state.history).filter((k) => state.history[k] >= goal).sort();
+  let best = 0, run = 0, prev = null;
+  for (const k of days) {
+    if (prev && shiftDay(prev, 1) === k) run++; else run = 1;
+    best = Math.max(best, run);
+    prev = k;
+  }
+  return best;
+}
+
+/* ---------------- timer engine (timestamp-based) ---------------- */
+const MODES = {
+  pomodoro: { label: "Time to focus!", color: () => state.config.color },
+  short:    { label: "Time for a break!", color: () => "56 133 138" },
+  long:     { label: "Time for a long break!", color: () => "57 112 151" },
+};
+let mode = "pomodoro";
+let running = false;
+let endAt = 0;        // timestamp ms when current run ends
+let remainingMs = 0;  // when paused
+let raf = null;
+
+function modeDurationMs(m = mode) {
+  const mins = m === "pomodoro" ? state.config.pomodoro : m === "short" ? state.config.short : state.config.long;
+  return Math.max(1, mins) * 60 * 1000;
+}
+function currentRemaining() {
+  if (running) return Math.max(0, endAt - Date.now());
+  return remainingMs;
+}
+function fmt(ms) {
+  const total = Math.round(ms / 1000);
+  return `${pad(Math.floor(total / 60))}:${pad(total % 60)}`;
+}
+
+function renderTime() {
+  const ms = currentRemaining();
+  const txt = fmt(ms);
+  el.time.textContent = txt;
+  document.title = (running ? txt + " — " : "") + (mode === "pomodoro" ? "Focus" : "Break") + " · nicofocus";
+}
+
+function tick() {
+  if (!running) return;
+  renderTime();
+  if (Date.now() >= endAt) { finishMode(); return; }
+  raf = requestAnimationFrame(tick);
+}
+
+function startTimer() {
+  if (running) return;
+  running = true;
+  endAt = Date.now() + (remainingMs || modeDurationMs());
+  el.startBtn.textContent = "Pause";
+  el.skipBtn.classList.add("show");
+  tick();
+}
+function pauseTimer() {
+  if (!running) return;
+  remainingMs = currentRemaining();
+  running = false;
+  cancelAnimationFrame(raf);
+  el.startBtn.textContent = "Start";
+  renderTime();
+}
+function toggleTimer() { running ? pauseTimer() : startTimer(); }
+
+function resetTimerTo(m, autoStart = false) {
+  cancelAnimationFrame(raf);
+  running = false;
+  mode = m;
+  remainingMs = modeDurationMs(m);
+  applyMode();
+  renderTime();
+  el.startBtn.textContent = "Start";
+  el.skipBtn.classList.remove("show");
+  if (autoStart) startTimer();
+}
+
+function finishMode() {
+  cancelAnimationFrame(raf);
+  running = false;
+  remainingMs = 0;
+  if (state.config.sound) playAlarm();
+  notify(mode === "pomodoro" ? "Focus session done! Take a break." : "Break over — back to focus.");
+
+  if (mode === "pomodoro") {
+    recordSession();
+    state.pomoSinceLong = (state.pomoSinceLong || 0) + 1;
+    const nextLong = state.pomoSinceLong >= state.config.interval;
+    if (nextLong) state.pomoSinceLong = 0;
+    save();
+    resetTimerTo(nextLong ? "long" : "short", state.config.autoBreak);
+  } else {
+    resetTimerTo("pomodoro", state.config.autoPomo);
+  }
+  renderAll();
+}
+
+/* record one finished pomodoro */
+function recordSession() {
+  const k = dayKey();
+  const prevStreak = computeStreak().streak;
+  state.history[k] = (state.history[k] || 0) + 1;
+  state.minutes[k] = (state.minutes[k] || 0) + state.config.pomodoro;
+  // bump active task
+  if (state.activeTask != null) {
+    const t = state.tasks.find((t) => t.id === state.activeTask);
+    if (t) t.done = (t.done || 0) + 1;
+  }
+  save();
+  // celebrate hitting the daily goal
+  const newStreak = computeStreak().streak;
+  if (state.history[k] === state.config.goal) {
+    confetti();
+    notify(`Daily goal hit! 🔥 ${newStreak}-day streak.`);
+  }
+}
+
+/* ---------------- alarm + confetti ---------------- */
+let audioCtx = null;
+function playAlarm() {
+  try {
+    audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+    const now = audioCtx.currentTime;
+    [0, 0.18, 0.36].forEach((t, i) => {
+      const o = audioCtx.createOscillator();
+      const g = audioCtx.createGain();
+      o.type = "sine";
+      o.frequency.value = [880, 1175, 1568][i];
+      g.gain.setValueAtTime(0.0001, now + t);
+      g.gain.exponentialRampToValueAtTime(0.4, now + t + 0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001, now + t + 0.5);
+      o.connect(g); g.connect(audioCtx.destination);
+      o.start(now + t); o.stop(now + t + 0.5);
+    });
+  } catch (e) { /* ignore */ }
+}
+function confetti() {
+  const colors = ["#f94144", "#f9c74f", "#90be6d", "#43aa8b", "#577590", "#f3722c"];
+  for (let i = 0; i < 80; i++) {
+    const p = document.createElement("div");
+    const size = 6 + Math.random() * 8;
+    p.style.cssText = `position:fixed;top:-20px;left:${Math.random() * 100}vw;width:${size}px;height:${size}px;background:${colors[i % colors.length]};z-index:999;border-radius:2px;pointer-events:none;`;
+    document.body.appendChild(p);
+    const dur = 1500 + Math.random() * 1500;
+    p.animate(
+      [{ transform: `translateY(0) rotate(0)`, opacity: 1 },
+       { transform: `translateY(105vh) rotate(${Math.random() * 720}deg)`, opacity: 1 }],
+      { duration: dur, easing: "cubic-bezier(.3,.6,.5,1)" }
+    ).onfinish = () => p.remove();
+  }
+}
+function notify(msg) {
+  if (!state.config.notify) return;
+  if (typeof Notification === "undefined" || Notification.permission !== "granted") return;
+  try { new Notification("nicofocus", { body: msg }); } catch (e) {}
+}
+
+/* ---------------- DOM refs ---------------- */
+const el = {
+  time: document.getElementById("time"),
+  startBtn: document.getElementById("startBtn"),
+  skipBtn: document.getElementById("skipBtn"),
+  roundCounter: document.getElementById("roundCounter"),
+  focusMsg: document.getElementById("focusMsg"),
+  streakNum: document.getElementById("streakNum"),
+  streakChip: document.getElementById("streakChip"),
+  todayCount: document.getElementById("todayCount"),
+  goalCount: document.getElementById("goalCount"),
+  todayBar: document.getElementById("todayBar"),
+  goalMsg: document.getElementById("goalMsg"),
+  taskList: document.getElementById("taskList"),
+};
+
+/* ---------------- theming ---------------- */
+function applyMode() {
+  const color = MODES[mode].color();
+  document.documentElement.style.setProperty("--bg", `rgb(${color})`);
+  document.querySelectorAll(".mode-btn").forEach((b) => b.classList.toggle("active", b.dataset.mode === mode));
+  el.focusMsg.textContent = MODES[mode].label;
+}
+
+/* ---------------- render ---------------- */
+function renderAll() {
+  const { streak, atRisk } = computeStreak();
+  el.streakNum.textContent = streak;
+  el.streakChip.classList.toggle("at-risk", atRisk);
+
+  const today = state.history[dayKey()] || 0;
+  const goal = state.config.goal;
+  el.todayCount.textContent = today;
+  el.goalCount.textContent = goal;
+  el.todayBar.style.width = Math.min(100, (today / goal) * 100) + "%";
+  el.goalMsg.textContent =
+    today >= goal ? `Goal reached — streak safe today! 🔥` :
+    `${goal - today} more to keep your streak.`;
+
+  el.roundCounter.textContent = "#" + ((state.pomoSinceLong || 0) % state.config.interval + 1);
+  renderTasks();
+}
+
+function renderTasks() {
+  el.taskList.innerHTML = "";
+  state.tasks.forEach((t) => {
+    const div = document.createElement("div");
+    div.className = "task" + (t.id === state.activeTask ? " active" : "") + (t.completed ? " done" : "");
+    div.innerHTML = `
+      <div class="check"></div>
+      <div class="task-name"></div>
+      <div class="task-pomo">${t.done || 0}/${t.est || 1}</div>
+      <button class="task-del" title="Delete">×</button>`;
+    div.querySelector(".task-name").textContent = t.name;
+    div.querySelector(".check").addEventListener("click", (e) => {
+      e.stopPropagation(); t.completed = !t.completed; save(); renderTasks();
+    });
+    div.querySelector(".task-del").addEventListener("click", (e) => {
+      e.stopPropagation();
+      state.tasks = state.tasks.filter((x) => x.id !== t.id);
+      if (state.activeTask === t.id) state.activeTask = null;
+      save(); renderTasks();
+    });
+    div.addEventListener("click", () => {
+      state.activeTask = state.activeTask === t.id ? null : t.id;
+      save(); renderTasks();
+    });
+    el.taskList.appendChild(div);
+  });
+}
+
+/* ---------------- report ---------------- */
+function openReport() {
+  const { streak } = computeStreak();
+  document.getElementById("rStreak").textContent = streak;
+  document.getElementById("rBest").textContent = Math.max(computeBest(), streak);
+  document.getElementById("rToday").textContent = state.history[dayKey()] || 0;
+  const totalMin = Object.values(state.minutes).reduce((a, b) => a + b, 0);
+  document.getElementById("rHours").textContent = (totalMin / 60).toFixed(1) + "h";
+  renderHeat();
+  document.getElementById("reportModal").classList.add("open");
+}
+function heatColor(n) {
+  if (!n) return "#ebedf0";
+  if (n < 2) return "#c6e48b";
+  if (n < 4) return "#7bc96f";
+  if (n < 6) return "#239a3b";
+  return "#196127";
+}
+function renderHeat() {
+  const heat = document.getElementById("heat");
+  heat.innerHTML = "";
+  const weeks = 13;
+  // start on the Sunday of the earliest visible week
+  const today = new Date();
+  const startOffset = (weeks - 1) * 7 + today.getDay();
+  for (let w = 0; w < weeks; w++) {
+    const col = document.createElement("div");
+    col.className = "heat-col";
+    for (let d = 0; d < 7; d++) {
+      const dayIdx = w * 7 + d;
+      const date = new Date(today);
+      date.setDate(today.getDate() - (startOffset - dayIdx));
+      const cell = document.createElement("div");
+      cell.className = "heat-cell";
+      if (date <= today) {
+        const n = state.history[dayKey(date)] || 0;
+        cell.style.background = heatColor(n);
+        cell.title = `${dayKey(date)}: ${n} session${n === 1 ? "" : "s"}`;
+      } else {
+        cell.style.visibility = "hidden";
+      }
+      col.appendChild(cell);
+    }
+    heat.appendChild(col);
+  }
+}
+
+/* ---------------- settings binding ---------------- */
+const COLORS = ["186 73 73", "56 133 138", "57 112 151", "166 98 42", "108 77 137", "159 67 135", "74 121 80", "79 104 120"];
+function buildSwatches() {
+  const box = document.getElementById("swatches");
+  box.innerHTML = "";
+  COLORS.forEach((c) => {
+    const s = document.createElement("div");
+    s.className = "swatch" + (c === state.config.color ? " sel" : "");
+    s.style.background = `rgb(${c})`;
+    s.addEventListener("click", () => {
+      state.config.color = c; save();
+      if (mode === "pomodoro") applyMode();
+      buildSwatches();
+    });
+    box.appendChild(s);
+  });
+}
+function bindToggle(id, key, onChange) {
+  const t = document.getElementById(id);
+  t.classList.toggle("on", !!state.config[key]);
+  t.addEventListener("click", () => {
+    state.config[key] = !state.config[key];
+    t.classList.toggle("on", state.config[key]);
+    save();
+    if (onChange) onChange(state.config[key]);
+  });
+}
+function bindNumber(id, key, onChange) {
+  const inp = document.getElementById(id);
+  inp.value = state.config[key];
+  inp.addEventListener("change", () => {
+    const v = Math.max(1, parseInt(inp.value) || 1);
+    inp.value = v; state.config[key] = v; save();
+    if (onChange) onChange(v);
+  });
+}
+function openSettings() {
+  bindNumber("cfgPomodoro", "pomodoro");
+  bindNumber("cfgShort", "short");
+  bindNumber("cfgLong", "long");
+  bindNumber("cfgInterval", "interval");
+  bindNumber("cfgGoal", "goal", () => renderAll());
+  document.getElementById("settingsModal").classList.add("open");
+}
+
+/* ---------------- export / import ---------------- */
+function exportData() {
+  const blob = new Blob([JSON.stringify(state, null, 2)], { type: "application/json" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = `nicofocus-backup-${dayKey()}.json`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+function importData(file) {
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      const data = JSON.parse(reader.result);
+      state = { ...structuredClone(DEFAULTS), ...data, config: { ...DEFAULTS.config, ...(data.config || {}) } };
+      save();
+      resetTimerTo("pomodoro");
+      renderAll(); buildSwatches();
+      alert("Data imported.");
+    } catch (e) { alert("Could not read that file."); }
+  };
+  reader.readAsText(file);
+}
+
+/* ---------------- events ---------------- */
+el.startBtn.addEventListener("click", toggleTimer);
+el.skipBtn.addEventListener("click", () => {
+  // skipping a pomodoro does NOT count toward the streak
+  if (mode === "pomodoro") { state.pomoSinceLong = (state.pomoSinceLong || 0) + 1; if (state.pomoSinceLong >= state.config.interval) state.pomoSinceLong = 0; save(); resetTimerTo(state.pomoSinceLong === 0 ? "long" : "short"); }
+  else resetTimerTo("pomodoro");
+  renderAll();
+});
+document.querySelectorAll(".mode-btn").forEach((b) =>
+  b.addEventListener("click", () => resetTimerTo(b.dataset.mode))
+);
+
+document.getElementById("addTask").addEventListener("click", () => {
+  const name = prompt("Task name?");
+  if (!name) return;
+  const est = parseInt(prompt("Estimated sessions?", "1")) || 1;
+  state.tasks.push({ id: Date.now(), name: name.trim(), est, done: 0, completed: false });
+  save(); renderTasks();
+});
+document.getElementById("clearDone").addEventListener("click", () => {
+  state.tasks = state.tasks.filter((t) => !t.completed);
+  if (state.activeTask && !state.tasks.find((t) => t.id === state.activeTask)) state.activeTask = null;
+  save(); renderTasks();
+});
+
+document.getElementById("settingsBtn").addEventListener("click", openSettings);
+document.getElementById("reportBtn").addEventListener("click", openReport);
+el.streakChip.addEventListener("click", openReport);
+document.querySelectorAll("[data-close]").forEach((b) =>
+  b.addEventListener("click", () => document.querySelectorAll(".overlay").forEach((o) => o.classList.remove("open")))
+);
+document.querySelectorAll(".overlay").forEach((o) =>
+  o.addEventListener("click", (e) => { if (e.target === o) o.classList.remove("open"); })
+);
+
+document.getElementById("exportBtn").addEventListener("click", exportData);
+document.getElementById("importBtn").addEventListener("click", () => document.getElementById("importFile").click());
+document.getElementById("importFile").addEventListener("change", (e) => { if (e.target.files[0]) importData(e.target.files[0]); });
+document.getElementById("resetBtn").addEventListener("click", () => {
+  if (confirm("Erase ALL sessions, streak and tasks? This cannot be undone.")) {
+    state = structuredClone(DEFAULTS); save();
+    resetTimerTo("pomodoro"); renderAll(); buildSwatches();
+    document.querySelectorAll(".overlay").forEach((o) => o.classList.remove("open"));
+  }
+});
+
+bindToggle("cfgAutoBreak", "autoBreak");
+bindToggle("cfgAutoPomo", "autoPomo");
+bindToggle("cfgSound", "sound");
+bindToggle("cfgNotify", "notify", (on) => {
+  if (on && typeof Notification !== "undefined" && Notification.permission === "default") Notification.requestPermission();
+});
+
+/* keyboard shortcuts */
+document.addEventListener("keydown", (e) => {
+  if (/input|textarea/i.test(e.target.tagName)) return;
+  const k = e.key.toLowerCase();
+  if (e.code === "Space") { e.preventDefault(); toggleTimer(); }
+  else if (k === "1") resetTimerTo("pomodoro");
+  else if (k === "2") resetTimerTo("short");
+  else if (k === "3") resetTimerTo("long");
+  else if (k === "s") openSettings();
+  else if (k === "r") openReport();
+});
+
+/* recompute time when tab regains focus (handles long sleeps) */
+document.addEventListener("visibilitychange", () => { if (!document.hidden) renderTime(); });
+/* if the day rolls over while the page is open, refresh the streak view */
+let lastDay = dayKey();
+setInterval(() => { const d = dayKey(); if (d !== lastDay) { lastDay = d; renderAll(); } }, 60 * 1000);
+
+/* ---------------- Google Drive sync ---------------- */
+/* Offline-first: localStorage is always the live store. Drive is a sync layer on
+   top. The app fully works signed out; sync just mirrors a private nicofocus.json
+   into a hidden per-app folder in YOUR Google Drive (drive.appdata scope only). */
+let tokenClient = null, accessToken = null, driveFileId = null;
+let signedIn = false, syncing = false, lastSyncAt = 0, pushTimer = null;
+
+function getClientId() {
+  return GOOGLE_CLIENT_ID || (localStorage.getItem("nicofocus.gclient") || "").trim();
+}
+
+function waitForGsi(cb, tries = 0) {
+  if (window.google && google.accounts && google.accounts.oauth2) return cb();
+  if (tries > 40) return; // give up after ~10s
+  setTimeout(() => waitForGsi(cb, tries + 1), 250);
+}
+
+function initSync() {
+  updateSyncUI();
+  const cid = getClientId();
+  if (!cid) return;
+  waitForGsi(() => {
+    try {
+      tokenClient = google.accounts.oauth2.initTokenClient({
+        client_id: cid,
+        scope: DRIVE_SCOPE,
+        callback: onToken,
+        error_callback: (e) => { console.warn("auth error", e); syncing = false; updateSyncUI(); },
+      });
+      // silently restore the session if this browser connected before
+      if (localStorage.getItem("nicofocus.connected") === "1") connectGoogle(false);
+    } catch (e) { console.warn("initTokenClient failed", e); }
+  });
+}
+
+function connectGoogle(interactive) {
+  if (!getClientId()) {
+    alert("Add your Google OAuth Client ID in Settings → Sync first.");
+    openSettings();
+    return;
+  }
+  if (!tokenClient) { initSync(); return; }
+  try { tokenClient.requestAccessToken({ prompt: interactive ? "consent" : "" }); }
+  catch (e) { console.warn(e); }
+}
+
+function disconnectGoogle() {
+  if (accessToken && window.google && google.accounts && google.accounts.oauth2) {
+    try { google.accounts.oauth2.revoke(accessToken); } catch (e) {}
+  }
+  signedIn = false; accessToken = null; driveFileId = null;
+  localStorage.removeItem("nicofocus.connected");
+  updateSyncUI();
+}
+
+async function onToken(resp) {
+  if (!resp || !resp.access_token) { syncing = false; updateSyncUI(); return; }
+  accessToken = resp.access_token;
+  signedIn = true;
+  localStorage.setItem("nicofocus.connected", "1");
+  updateSyncUI();
+  try { await pullAndMerge(); }
+  catch (e) { console.warn("initial sync failed", e); syncing = false; updateSyncUI(); }
+}
+
+async function driveFetch(url, opts = {}) {
+  const res = await fetch(url, {
+    ...opts,
+    headers: { Authorization: "Bearer " + accessToken, ...(opts.headers || {}) },
+  });
+  if (res.status === 401) { // token expired -> drop and re-auth silently
+    signedIn = false; updateSyncUI(); connectGoogle(false);
+    throw new Error("token expired");
+  }
+  return res;
+}
+async function driveFindFile() {
+  const url = "https://www.googleapis.com/drive/v3/files?spaces=appDataFolder"
+    + "&fields=files(id,name)&q=" + encodeURIComponent("name='" + DRIVE_FILE + "'");
+  const data = await (await driveFetch(url)).json();
+  return (data.files && data.files[0]) || null;
+}
+async function driveReadFile(id) {
+  return await (await driveFetch("https://www.googleapis.com/drive/v3/files/" + id + "?alt=media")).json();
+}
+async function driveCreateFile(content) {
+  const meta = { name: DRIVE_FILE, parents: ["appDataFolder"] };
+  const boundary = "nfb" + Math.random().toString(16).slice(2);
+  const body =
+    "--" + boundary + "\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n" +
+    JSON.stringify(meta) +
+    "\r\n--" + boundary + "\r\nContent-Type: application/json\r\n\r\n" +
+    JSON.stringify(content) + "\r\n--" + boundary + "--";
+  const res = await driveFetch(
+    "https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id",
+    { method: "POST", headers: { "Content-Type": "multipart/related; boundary=" + boundary }, body }
+  );
+  return (await res.json()).id;
+}
+async function driveUpdateFile(id, content) {
+  await driveFetch("https://www.googleapis.com/upload/drive/v3/files/" + id + "?uploadType=media",
+    { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(content) });
+}
+
+/* Reconcile two copies. History/minutes use per-day MAX so a device with stale
+   data can never erase a day's progress (protects the streak). Settings/tasks
+   follow whichever copy was edited more recently. */
+function mergeDocs(local, remote) {
+  const mergeMax = (a = {}, b = {}) => {
+    const o = { ...a };
+    for (const k in b) o[k] = Math.max(o[k] || 0, b[k] || 0);
+    return o;
+  };
+  const newer = (remote.updatedAt || 0) > (local.updatedAt || 0) ? remote : local;
+  return {
+    config: { ...DEFAULTS.config, ...(newer.config || {}) },
+    history: mergeMax(local.history, remote.history),
+    minutes: mergeMax(local.minutes, remote.minutes),
+    tasks: newer.tasks || [],
+    activeTask: newer.activeTask ?? null,
+    pomoSinceLong: newer.pomoSinceLong || 0,
+    updatedAt: Math.max(local.updatedAt || 0, remote.updatedAt || 0),
+  };
+}
+
+async function pullAndMerge() {
+  if (!signedIn) return;
+  syncing = true; updateSyncUI();
+  const f = await driveFindFile();
+  if (f) {
+    driveFileId = f.id;
+    const remote = await driveReadFile(f.id);
+    state = mergeDocs(state, remote);
+    persistLocalOnly();
+    if (!running) remainingMs = modeDurationMs();
+    applyMode(); renderTime(); renderAll(); buildSwatches();
+    await driveUpdateFile(driveFileId, state); // converge remote to the merged copy
+  } else {
+    driveFileId = await driveCreateFile(state);
+  }
+  syncing = false; lastSyncAt = Date.now(); updateSyncUI();
+}
+
+function schedulePush() {
+  if (!signedIn) return;
+  clearTimeout(pushTimer);
+  pushTimer = setTimeout(() => { pushNow().catch((e) => console.warn("push failed", e)); }, 1500);
+}
+async function pushNow() {
+  if (!signedIn) return;
+  syncing = true; updateSyncUI();
+  if (!driveFileId) {
+    const f = await driveFindFile();
+    driveFileId = f ? f.id : await driveCreateFile(state);
+  }
+  if (driveFileId) await driveUpdateFile(driveFileId, state);
+  syncing = false; lastSyncAt = Date.now(); updateSyncUI();
+}
+
+function updateSyncUI() {
+  const label = document.getElementById("syncLabel");
+  const status = document.getElementById("syncStatus");
+  const connectBtn = document.getElementById("connectBtn");
+  if (label) label.textContent = signedIn ? (syncing ? "Syncing…" : "Synced") : "Sync";
+  if (connectBtn) connectBtn.textContent = signedIn ? "Disconnect" : "Connect";
+  if (status) {
+    status.textContent = !getClientId()
+      ? "Add your Google OAuth Client ID below to enable cross-device sync."
+      : signedIn
+        ? (syncing ? "Syncing with Google Drive…" : "Connected — your data syncs to a private folder in your Google Drive.")
+        : "Not connected. Tap Connect to sync this browser across devices.";
+  }
+}
+
+/* sync-related events (bound once at boot; elements always present) */
+document.getElementById("syncBtn").addEventListener("click", () => {
+  signedIn ? openSettings() : connectGoogle(true);
+});
+document.getElementById("connectBtn").addEventListener("click", () => {
+  signedIn ? disconnectGoogle() : connectGoogle(true);
+});
+(() => {
+  const inp = document.getElementById("clientIdInput");
+  inp.value = getClientId();
+  inp.addEventListener("change", () => {
+    localStorage.setItem("nicofocus.gclient", inp.value.trim());
+    tokenClient = null;
+    initSync();
+  });
+})();
+
+/* ---------------- boot ---------------- */
+buildSwatches();
+resetTimerTo("pomodoro");
+renderAll();
+initSync();
+</script>
